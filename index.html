@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition Attendance System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            margin: 0 5px;
+            background-color: #e9ecef;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .tab:hover {
+            background-color: #d1d4d7;
+        }
+        .tab.active {
+            background-color: #2c3e50;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .image-preview {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .image-preview img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        .btn {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #1a252f;
+        }
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            border-left: 5px solid #2c3e50;
+        }
+        .success {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .camera-feed {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        video, canvas {
+            width: 640px;
+            height: 480px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        canvas {
+            display: none;
+        }
+        .attendance-list {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .attendance-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .attendance-item:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .attendance-list.highlight {
+            border: 2px solid #28a745;
+            background-color: #e9f7ef;
+            padding: 10px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Face Recognition Attendance System</h1>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="register">Register Face</div>
+            <div class="tab" data-tab="attendance">Mark Attendance</div>
+            <div class="tab" data-tab="login">Login</div>
+        </div>
+
+        <!-- Register Face Tab -->
+        <div id="register-tab" class="tab-content active">
+            <h2>Register Face</h2>
+            <p>Enter your full name and roll number, then capture three images of your face (front, left, right) to register.</p>
+            
+            <div class="form-group">
+                <label for="name">Full Name (required):</label>
+                <input type="text" id="name" placeholder="Enter your full name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="rollno">Roll Number (required):</label>
+                <input type="text" id="rollno" placeholder="Enter your roll number" required>
+            </div>
+            
+            <div class="camera-feed">
+                <video id="register-video" autoplay></video>
+                <canvas id="register-canvas" style="display: none;"></canvas>
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="btn" id="start-register-camera">Start Camera</button>
+                <button class="btn" id="stop-register-camera" style="display: none;">Stop Camera</button>
+            </div>
+            
+            <div class="image-preview">
+                <img id="front-preview" src="" alt="Front Image">
+                <img id="left-preview" src="" alt="Left Image">
+                <img id="right-preview" src="" alt="Right Image">
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="btn" id="capture-front">Capture Front</button>
+                <button class="btn" id="capture-left">Capture Left</button>
+                <button class="btn" id="capture-right">Capture Right</button>
+            </div>
+            
+            <div style="text-align: center; margin-top: 10px;">
+                <button class="btn" id="register-btn" disabled>Complete Registration</button>
+            </div>
+            
+            <div id="register-status" class="status hidden"></div>
+        </div>
+
+        <!-- Mark Attendance Tab -->
+        <div id="attendance-tab" class="tab-content">
+            <h2>Mark Attendance</h2>
+            <p>Click "Start Live Attendance" to begin real-time face recognition and record your attendance. Click "Stop Live Attendance" to stop the process.</p>
+            
+            <div class="camera-feed">
+                <video id="video" autoplay></video>
+                <canvas id="canvas"></canvas>
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="btn" id="start-live-attendance">Start Live Attendance</button>
+            </div>
+            
+            <div id="attendance-status" class="status hidden"></div>
+            
+            <div class="attendance-list" id="attendance-records-attendance">
+                <h3>Recent Attendance:</h3>
+                <!-- Attendance records will be fetched and displayed here -->
+            </div>
+        </div>
+
+        <!-- Login Tab -->
+        <div id="login-tab" class="tab-content">
+            <h2>Student Login</h2>
+            <p>Enter your full name and roll number to log in and view your attendance.</p>
+            
+            <div class="form-group">
+                <label for="login-name">Full Name (required):</label>
+                <input type="text" id="login-name" placeholder="Enter your full name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="login-rollno">Roll Number (required):</label>
+                <input type="text" id="login-rollno" placeholder="Enter your roll number" required>
+            </div>
+            
+            <button class="btn" id="login-btn" disabled>Login</button>
+            
+            <div id="login-status" class="status hidden"></div>
+            
+            <div class="attendance-list" id="attendance-records">
+                <h3>Your Attendance History:</h3>
+                <!-- Attendance records will be fetched and displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API endpoint
+        const API_URL = 'http://localhost:5000';
+
+        // DOM elements
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const nameInput = document.getElementById('name');
+        const rollnoInput = document.getElementById('rollno');
+        const registerVideo = document.getElementById('register-video');
+        const frontPreview = document.getElementById('front-preview');
+        const leftPreview = document.getElementById('left-preview');
+        const rightPreview = document.getElementById('right-preview');
+        const captureFrontBtn = document.getElementById('capture-front');
+        const captureLeftBtn = document.getElementById('capture-left');
+        const captureRightBtn = document.getElementById('capture-right');
+        const registerBtn = document.getElementById('register-btn');
+        const registerStatus = document.getElementById('register-status');
+        const registerCanvas = document.getElementById('register-canvas');
+        const startRegisterCameraBtn = document.getElementById('start-register-camera');
+        const stopRegisterCameraBtn = document.getElementById('stop-register-camera');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const startLiveAttendanceBtn = document.getElementById('start-live-attendance');
+        const attendanceStatus = document.getElementById('attendance-status');
+        const loginNameInput = document.getElementById('login-name');
+        const loginRollnoInput = document.getElementById('login-rollno');
+        const loginBtn = document.getElementById('login-btn');
+        const loginStatus = document.getElementById('login-status');
+        const attendanceRecordsLogin = document.getElementById('attendance-records');
+        const attendanceRecordsAttendance = document.getElementById('attendance-records-attendance');
+
+        // State variables
+        let capturedImages = { front: null, left: null, right: null };
+        let stream = null;
+        let registerStream = null;
+        let loggedInName = null;
+        let liveAttendanceInterval = null;
+
+        // Utility functions
+        function showStatus(element, message, type = '') {
+            element.textContent = message;
+            element.className = 'status';
+            if (type) {
+                element.classList.add(type);
+            }
+            element.classList.remove('hidden');
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    element.classList.add('hidden');
+                }, 5000);
+            }
+        }
+
+        // Restore last active tab on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const lastActiveTab = localStorage.getItem('activeTab') || 'register';
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            document.querySelector(`[data-tab="${lastActiveTab}"]`).classList.add('active');
+            document.getElementById(`${lastActiveTab}-tab`).classList.add('active');
+        });
+
+        // Tab navigation
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (event) => {
+                event.preventDefault();
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+                
+                localStorage.setItem('activeTab', tab.dataset.tab);
+                
+                if (tab.dataset.tab !== 'attendance') {
+                    stopCamera();
+                }
+            });
+        });
+
+        // === Register Face Logic ===
+        async function startRegisterCamera() {
+            try {
+                registerStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                registerVideo.srcObject = registerStream;
+                registerVideo.play();
+                await new Promise(resolve => registerVideo.onloadedmetadata = resolve);
+                
+                showStatus(registerStatus, 'Camera started. Adjust your position and capture the images.', 'success');
+                
+                // Show the stop button and hide the start button
+                startRegisterCameraBtn.style.display = 'none';
+                stopRegisterCameraBtn.style.display = 'inline-block';
+            } catch (error) {
+                console.error('Register camera error:', error.name, error.message);
+                if (error.name === 'NotAllowedError') {
+                    showStatus(registerStatus, 'Camera access denied. Please allow camera access in your browser settings and try again.', 'error');
+                } else if (error.name === 'NotFoundError') {
+                    showStatus(registerStatus, 'No camera found. Please ensure a camera is connected and try again.', 'error');
+                } else {
+                    showStatus(registerStatus, `Failed to access camera: ${error.message}. Please ensure camera access is allowed and the camera is not in use by another application.`, 'error');
+                }
+            }
+        }
+
+        function stopRegisterCamera() {
+            if (registerStream) {
+                registerStream.getTracks().forEach(track => track.stop());
+                registerStream = null;
+                registerVideo.srcObject = null;
+                showStatus(registerStatus, 'Camera stopped.', '');
+                
+                // Show the start button and hide the stop button
+                startRegisterCameraBtn.style.display = 'inline-block';
+                stopRegisterCameraBtn.style.display = 'none';
+            }
+        }
+
+        startRegisterCameraBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            startRegisterCamera();
+        });
+
+        stopRegisterCameraBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            stopRegisterCamera();
+        });
+
+        async function registerFaces() {
+            const name = nameInput.value.trim();
+            const rollno = rollnoInput.value.trim();
+            const fullName = `${name} (${rollno})`;
+            
+            if (!capturedImages.front || !capturedImages.left || !capturedImages.right) {
+                throw new Error('Please capture all three images: front, left, and right.');
+            }
+            
+            const formData = new FormData();
+            formData.append('files', capturedImages.front, 'front.jpg');
+            formData.append('files', capturedImages.left, 'left.jpg');
+            formData.append('files', capturedImages.right, 'right.jpg');
+            
+            console.log('Sending to /store_face:', {
+                url: `${API_URL}/store_face?name=${encodeURIComponent(fullName)}`,
+                method: 'POST',
+                formData: {
+                    files: [
+                        { name: 'front.jpg', size: capturedImages.front.size, type: capturedImages.front.type },
+                        { name: 'left.jpg', size: capturedImages.left.size, type: capturedImages.left.type },
+                        { name: 'right.jpg', size: capturedImages.right.size, type: capturedImages.right.type }
+                    ]
+                }
+            });
+            
+            try {
+                const response = await fetch(`${API_URL}/store_face?name=${encodeURIComponent(fullName)}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                        console.log('Error response JSON:', errorData);
+                    } catch (jsonError) {
+                        const errorText = await response.text();
+                        console.log('Error response text (not JSON):', errorText);
+                        errorData = { detail: errorText || `HTTP ${response.status}` };
+                    }
+                    const errorMessage = errorData.detail ? `Registration failed: ${errorData.detail}` : `Registration failed: HTTP ${response.status}`;
+                    throw new Error(errorMessage);
+                }
+                
+                const data = await response.json();
+                console.log('Success response:', data);
+                return data;
+            } catch (error) {
+                console.error('Fetch error:', error.message);
+                throw error;
+            }
+        }
+
+        captureFrontBtn.addEventListener('click', async () => {
+            try {
+                if (!registerStream) {
+                    showStatus(registerStatus, 'Please start the camera first.', 'error');
+                    return;
+                }
+                
+                // Capture image from the live video feed
+                if (registerVideo.videoWidth === 0 || registerVideo.videoHeight === 0) {
+                    throw new Error('Video dimensions are not ready. Please ensure the camera is working.');
+                }
+                
+                registerCanvas.width = registerVideo.videoWidth;
+                registerCanvas.height = registerVideo.videoHeight;
+                const ctx = registerCanvas.getContext('2d');
+                ctx.drawImage(registerVideo, 0, 0, registerCanvas.width, registerCanvas.height);
+                
+                const blob = await new Promise((resolve, reject) => {
+                    registerCanvas.toBlob(blob => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Failed to convert canvas to Blob'));
+                        }
+                    }, 'image/jpeg', 0.9);
+                });
+                
+                capturedImages.front = blob;
+                frontPreview.src = URL.createObjectURL(blob);
+                captureFrontBtn.textContent = 'Retake Front';
+                
+                checkRegisterReady();
+            } catch (error) {
+                console.error('Capture front error:', error);
+                showStatus(registerStatus, 'Failed to capture front image.', 'error');
+            }
+        });
+
+        captureLeftBtn.addEventListener('click', async () => {
+            try {
+                if (!registerStream) {
+                    showStatus(registerStatus, 'Please start the camera first.', 'error');
+                    return;
+                }
+                
+                // Capture image from the live video feed
+                if (registerVideo.videoWidth === 0 || registerVideo.videoHeight === 0) {
+                    throw new Error('Video dimensions are not ready. Please ensure the camera is working.');
+                }
+                
+                registerCanvas.width = registerVideo.videoWidth;
+                registerCanvas.height = registerVideo.videoHeight;
+                const ctx = registerCanvas.getContext('2d');
+                ctx.drawImage(registerVideo, 0, 0, registerCanvas.width, registerCanvas.height);
+                
+                const blob = await new Promise((resolve, reject) => {
+                    registerCanvas.toBlob(blob => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Failed to convert canvas to Blob'));
+                        }
+                    }, 'image/jpeg', 0.9);
+                });
+                
+                capturedImages.left = blob;
+                leftPreview.src = URL.createObjectURL(blob);
+                captureLeftBtn.textContent = 'Retake Left';
+                
+                checkRegisterReady();
+            } catch (error) {
+                console.error('Capture left error:', error);
+                showStatus(registerStatus, 'Failed to capture left image.', 'error');
+            }
+        });
+
+        captureRightBtn.addEventListener('click', async () => {
+            try {
+                if (!registerStream) {
+                    showStatus(registerStatus, 'Please start the camera first.', 'error');
+                    return;
+                }
+                
+                // Capture image from the live video feed
+                if (registerVideo.videoWidth === 0 || registerVideo.videoHeight === 0) {
+                    throw new Error('Video dimensions are not ready. Please ensure the camera is working.');
+                }
+                
+                registerCanvas.width = registerVideo.videoWidth;
+                registerCanvas.height = registerVideo.videoHeight;
+                const ctx = registerCanvas.getContext('2d');
+                ctx.drawImage(registerVideo, 0, 0, registerCanvas.width, registerCanvas.height);
+                
+                const blob = await new Promise((resolve, reject) => {
+                    registerCanvas.toBlob(blob => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Failed to convert canvas to Blob'));
+                        }
+                    }, 'image/jpeg', 0.9);
+                });
+                
+                capturedImages.right = blob;
+                rightPreview.src = URL.createObjectURL(blob);
+                captureRightBtn.textContent = 'Retake Right';
+                
+                checkRegisterReady();
+            } catch (error) {
+                console.error('Capture right error:', error);
+                showStatus(registerStatus, 'Failed to capture right image.', 'error');
+            }
+        });
+
+        function checkRegisterReady() {
+            const name = nameInput.value.trim();
+            const rollno = rollnoInput.value.trim();
+            const allImagesCaptured = capturedImages.front && capturedImages.left && capturedImages.right;
+            registerBtn.disabled = !(name && rollno && allImagesCaptured);
+        }
+
+        nameInput.addEventListener('input', checkRegisterReady);
+        rollnoInput.addEventListener('input', checkRegisterReady);
+
+        registerBtn.addEventListener('click', async () => {
+            const name = nameInput.value.trim();
+            const rollno = rollnoInput.value.trim();
+            
+            if (!name || !rollno) {
+                showStatus(registerStatus, 'Please enter your name and roll number.', 'error');
+                return;
+            }
+
+            registerBtn.disabled = true;
+            showStatus(registerStatus, 'Registering faces, please wait...', '');
+
+            try {
+                await registerFaces();
+                showStatus(registerStatus, 'Registration successful! Face registered.', 'success');
+                capturedImages = { front: null, left: null, right: null };
+                nameInput.value = '';
+                rollnoInput.value = '';
+                frontPreview.src = '';
+                leftPreview.src = '';
+                rightPreview.src = '';
+                captureFrontBtn.textContent = 'Capture Front';
+                captureLeftBtn.textContent = 'Capture Left';
+                captureRightBtn.textContent = 'Capture Right';
+                registerBtn.disabled = true;
+                stopRegisterCamera();
+            } catch (error) {
+                console.error('Registration error:', error.message);
+                showStatus(registerStatus, `Registration failed: ${error.message}. Ensure three valid images are captured and the server is running.`, 'error');
+                registerBtn.disabled = false;
+            }
+        });
+
+        // === Mark Attendance Logic ===
+        async function startLiveAttendance() {
+            try {
+                // Ensure the "Mark Attendance" tab is active
+                tabs.forEach(t => t.classList.remove('active'));
+                document.querySelector('[data-tab="attendance"]').classList.add('active');
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById('attendance-tab').classList.add('active');
+                localStorage.setItem('activeTab', 'attendance');
+
+                // Start the camera if not already running
+                if (!stream) {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    video.srcObject = stream;
+                    video.play();
+                    await new Promise(resolve => video.onloadedmetadata = resolve);
+                }
+                showStatus(attendanceStatus, 'Live attendance started. Keep your face in front of the camera to mark attendance.', 'success');
+                
+                // Reset consecutive failures counter
+                let consecutiveFailures = 0;
+                const maxConsecutiveFailures = 5; // We'll still count but not auto-stop
+
+                // Flag to control the loop - now controlled by button
+                let isRunning = true;
+                
+                // Update button to allow manual stopping
+                startLiveAttendanceBtn.textContent = 'Stop Live Attendance';
+                startLiveAttendanceBtn.removeEventListener('click', startLiveAttendance);
+                startLiveAttendanceBtn.addEventListener('click', stopLiveAttendance);
+                startLiveAttendanceBtn.disabled = false;
+                
+                liveAttendanceInterval = { 
+                    stop: () => { 
+                        isRunning = false;
+                        // Reset button behavior
+                        startLiveAttendanceBtn.textContent = 'Start Live Attendance';
+                        startLiveAttendanceBtn.removeEventListener('click', stopLiveAttendance);
+                        startLiveAttendanceBtn.addEventListener('click', startLiveAttendance);
+                        startLiveAttendanceBtn.disabled = false;
+                    } 
+                };
+
+                // Store last recognized person to avoid spamming
+                let lastRecognizedPerson = null;
+                let lastRecognitionTime = 0;
+                const recognitionCooldown = 5000; // 5 seconds between recognitions of same person
+
+                // Continuous frame processing loop using requestAnimationFrame
+                const processFrame = async () => {
+                    if (!isRunning) return; // Stop the loop if flagged
+
+                    try {
+                        // Verify video dimensions
+                        if (video.videoWidth === 0 || video.videoHeight === 0) {
+                            throw new Error('Video dimensions are not ready. Please ensure the camera is working.');
+                        }
+
+                        // Set canvas dimensions and draw the video frame
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        
+                        // Convert canvas to Blob
+                        const blob = await new Promise((resolve, reject) => {
+                            canvas.toBlob(blob => {
+                                if (blob) resolve(blob);
+                                else reject(new Error('Failed to convert canvas to Blob'));
+                            }, 'image/jpeg', 0.9);
+                        });
+
+                        // Verify that blob is a valid Blob object
+                        if (!(blob instanceof Blob)) {
+                            throw new Error('Invalid Blob object created from canvas');
+                        }
+
+                        const formData = new FormData();
+                        formData.append('file', blob, 'capture.jpg');
+                        
+                        const response = await fetch(`${API_URL}/predict_face`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.detail || `HTTP ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        const currentTime = Date.now();
+                        
+                        // Prevent repeated recognition of the same person within cooldown period
+                        if (lastRecognizedPerson !== data.name || (currentTime - lastRecognitionTime) > recognitionCooldown) {
+                            lastRecognizedPerson = data.name;
+                            lastRecognitionTime = currentTime;
+                            
+                            showStatus(attendanceStatus, `Attendance marked for ${data.name} with ${data.confidence}% confidence!`, 'success');
+                            
+                            // Fetch and display attendance records
+                            try {
+                                await fetchAttendanceHistoryForAttendanceTab(data.name);
+                            } catch (fetchError) {
+                                console.error('Error fetching attendance history:', fetchError);
+                            }
+                        }
+
+                        // Reset consecutive failures on success
+                        consecutiveFailures = 0;
+                    } catch (error) {
+                        console.error('Live attendance error:', error.message);
+                        consecutiveFailures++;
+                        
+                        if (error.message.includes('No faces found') || error.message.includes('No face detected') || error.message.includes('No match found')) {
+                            showStatus(attendanceStatus, 'No face detected. Please ensure your face is visible in the camera frame.', 'error');
+                        } else if (error.message.includes('HTTP')) {
+                            showStatus(attendanceStatus, `Server error: ${error.message}. Please ensure the backend server is running.`, 'error');
+                        } else {
+                            showStatus(attendanceStatus, `Failed to process frame: ${error.message}.`, 'error');
+                        }
+
+                        // Warn about consecutive failures but don't stop automatically
+                        if (consecutiveFailures >= maxConsecutiveFailures) {
+                            showStatus(attendanceStatus, `Having trouble detecting faces (${consecutiveFailures} consecutive errors). Please check lighting and camera position.`, 'error');
+                        }
+                    }
+
+                    // Continue the loop if still running (always continues unless manually stopped)
+                    if (isRunning) {
+                        requestAnimationFrame(processFrame);
+                    }
+                };
+
+                // Start the continuous loop
+                requestAnimationFrame(processFrame);
+                
+            } catch (error) {
+                console.error('Camera error:', error.name, error.message);
+                if (error.name === 'NotAllowedError') {
+                    showStatus(attendanceStatus, 'Camera access denied. Please allow camera access in your browser settings and try again.', 'error');
+                } else if (error.name === 'NotFoundError') {
+                    showStatus(attendanceStatus, 'No camera found. Please ensure a camera is connected and try again.', 'error');
+                } else {
+                    showStatus(attendanceStatus, `Failed to access camera: ${error.message}. Please ensure camera access is allowed and the camera is not in use by another application.`, 'error');
+                }
+                
+                // Reset button on error
+                startLiveAttendanceBtn.textContent = 'Start Live Attendance';
+                startLiveAttendanceBtn.disabled = false;
+            }
+        }
+
+        function stopLiveAttendance() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+                video.srcObject = null;
+            }
+            
+            if (liveAttendanceInterval) {
+                liveAttendanceInterval.stop();
+                liveAttendanceInterval = null;
+            }
+            
+            showStatus(attendanceStatus, 'Live attendance stopped manually.', '');
+            startLiveAttendanceBtn.textContent = 'Start Live Attendance';
+            startLiveAttendanceBtn.removeEventListener('click', stopLiveAttendance);
+            startLiveAttendanceBtn.addEventListener('click', startLiveAttendance);
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+                video.srcObject = null;
+            }
+            if (liveAttendanceInterval) {
+                liveAttendanceInterval.stop();
+                liveAttendanceInterval = null;
+            }
+            startLiveAttendanceBtn.textContent = 'Start Live Attendance';
+            startLiveAttendanceBtn.removeEventListener('click', stopLiveAttendance);
+            startLiveAttendanceBtn.addEventListener('click', startLiveAttendance);
+            startLiveAttendanceBtn.disabled = false;
+            stopRegisterCamera();
+        }
+
+        // Make sure this is correctly set up in your initialization section
+        startLiveAttendanceBtn.addEventListener('click', startLiveAttendance);
+
+        async function fetchAttendanceHistoryForAttendanceTab(name) {
+            console.log(`Fetching attendance for ${name} (Attendance Tab)`);
+            try {
+                // Show loading state
+                attendanceRecordsAttendance.innerHTML = '<div>Loading recent attendance...</div>';
+                
+                const response = await fetch(`${API_URL}/get_attendance?name=${encodeURIComponent(name)}`, {
+                    method: 'GET',
+                    headers: { 'accept': 'application/json' }
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: Unable to fetch attendance for ${name}`);
+                }
+                const data = await response.json();
+                console.log('Attendance data:', data);
+                
+                // Clear previous records and update the DOM
+                attendanceRecordsAttendance.innerHTML = '<h3>Recent Attendance:</h3>';
+                
+                if (data.attendance && data.attendance.length > 0) {
+                    // Sort records by date (most recent first)
+                    data.attendance.sort((a, b) => new Date(b) - new Date(a));
+                    
+                    // Display records
+                    data.attendance.forEach(timestamp => {
+                        const recordDiv = document.createElement('div');
+                        recordDiv.className = 'attendance-item';
+                        recordDiv.innerHTML = `
+                            <div><strong>${data.name}</strong></div>
+                            <div>Attended at ${new Date(timestamp).toLocaleString()}</div>
+                        `;
+                        attendanceRecordsAttendance.appendChild(recordDiv);
+                    });
+                    
+                    // Briefly highlight the records to draw attention
+                    attendanceRecordsAttendance.classList.add('highlight');
+                    setTimeout(() => {
+                        attendanceRecordsAttendance.classList.remove('highlight');
+                    }, 2000);
+                } else {
+                    attendanceRecordsAttendance.innerHTML += `<div>No attendance records found for ${name}.</div>`;
+                }
+            } catch (error) {
+                console.error('Attendance fetch error:', error);
+                attendanceRecordsAttendance.innerHTML = `<h3>Recent Attendance:</h3><div>Failed to load attendance history for ${name}: ${error.message}</div>`;
+            }
+        }
+
+        // === Login & Get Attendance Logic ===
+        function checkLoginReady() {
+            const name = loginNameInput.value.trim();
+            const rollno = loginRollnoInput.value.trim();
+            loginBtn.disabled = !(name && rollno);
+        }
+
+        async function fetchAttendanceHistoryForLoginTab(name) {
+            console.log(`Fetching attendance for ${name} (Login Tab)`);
+            try {
+                attendanceRecordsLogin.innerHTML = '<div>Loading attendance...</div>';
+                const response = await fetch(`${API_URL}/get_attendance?name=${encodeURIComponent(name)}`, {
+                    method: 'GET',
+                    headers: { 'accept': 'application/json' }
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: Unable to fetch attendance for ${name}`);
+                }
+                const data = await response.json();
+                console.log('Attendance data:', data);
+                attendanceRecordsLogin.innerHTML = '';
+                if (data.attendance && data.attendance.length > 0) {
+                    data.attendance.forEach(timestamp => {
+                        const recordDiv = document.createElement('div');
+                        recordDiv.className = 'attendance-item';
+                        recordDiv.innerHTML = `
+                            <div><strong>${data.name}</strong></div>
+                            <div>Attended at ${new Date(timestamp).toLocaleString()}</div>
+                        `;
+                        attendanceRecordsLogin.appendChild(recordDiv);
+                    });
+                } else {
+                    attendanceRecordsLogin.innerHTML = `<div>No attendance records found for ${name}.</div>`;
+                }
+            } catch (error) {
+                console.error('Attendance fetch error:', error);
+                attendanceRecordsLogin.innerHTML = `<div>Failed to load attendance history for ${name}: ${error.message}</div>`;
+            }
+        }
+
+        function checkAndFetchAttendance() {
+            const name = loginNameInput.value.trim();
+            const rollno = loginRollnoInput.value.trim();
+            const fullName = `${name} (${rollno})`;
+            if (name && rollno) {
+                fetchAttendanceHistoryForLoginTab(fullName);
+            } else {
+                attendanceRecordsLogin.innerHTML = '';
+            }
+        }
+
+        async function handleLogin() {
+            const name = loginNameInput.value.trim();
+            const rollno = loginRollnoInput.value.trim();
+            const fullName = `${name} (${rollno})`;
+
+            loginBtn.disabled = true;
+            showStatus(loginStatus, 'Verifying, please wait...', '');
+
+            try {
+                const response = await fetch(`${API_URL}/get_attendance?name=${encodeURIComponent(fullName)}`, {
+                    method: 'GET',
+                    headers: { 'accept': 'application/json' }
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: Student not found`);
+                }
+                const data = await response.json();
+                showStatus(loginStatus, `Successfully logged in as ${fullName}!`, 'success');
+                fetchAttendanceHistoryForLoginTab(fullName);
+                attendanceRecordsLogin.classList.add('highlight');
+            } catch (error) {
+                console.error('Login error:', error);
+                showStatus(loginStatus, `Login failed: ${error.message}. Ensure you are a registered student.`, 'error');
+            } finally {
+                checkLoginReady();
+            }
+        }
+
+        loginNameInput.addEventListener('input', () => {
+            checkLoginReady();
+            checkAndFetchAttendance();
+        });
+        loginRollnoInput.addEventListener('input', () => {
+            checkLoginReady();
+            checkAndFetchAttendance();
+        });
+        loginBtn.addEventListener('click', handleLogin);
+    </script>
+</body>
+</html>
